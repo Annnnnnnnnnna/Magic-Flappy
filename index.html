@@ -82,17 +82,6 @@
       opacity:0.95;
     }
 
-    .kbd{
-      display:inline-block;
-      padding:2px 8px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.25);
-      background:rgba(255,255,255,0.08);
-      font-weight:650;
-      font-size:0.95em;
-      white-space:nowrap;
-    }
-
     .btn{
       appearance:none;
       border:0;
@@ -193,7 +182,8 @@
     <div class="panel">
       <h1 class="title">How to Play</h1>
       <p class="text">
-        Tap / click / press <span class="kbd">Space</span> to flap and stay in the air.<br/>
+        Press <b>Start</b> to begin.<br/>
+        Then tap/click anywhere to flap and stay in the air.<br/>
         Fly through the gaps between the purple columns.<br/>
         Each pair of columns you pass = <b>+1</b> point.<br/>
         If you hit a column or the ground, the game ends.
@@ -235,7 +225,7 @@
       const scoreNowEl = document.getElementById('scoreNow');
       const scoreBestEl = document.getElementById('scoreBest');
 
-      // --- Stable viewport height on mobile ---
+      // stable mobile vh
       function setVhUnit() {
         const vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -244,10 +234,10 @@
       window.addEventListener('orientationchange', setVhUnit, { passive: true });
       setVhUnit();
 
-      // prevent scroll/bounce
+      // prevent scroll
       document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
-      // --- Fullscreen helpers ---
+      // fullscreen
       function isFullscreen() {
         return !!(document.fullscreenElement || document.webkitFullscreenElement);
       }
@@ -273,7 +263,6 @@
         if (isFullscreen()) await exitFullscreen();
         else await enterFullscreen();
       }
-
       function updateFsUI() {
         const available = fullscreenAvailable();
         fsBtn.style.display = available ? 'inline-block' : 'none';
@@ -292,8 +281,8 @@
       document.addEventListener('webkitfullscreenchange', updateFsUI);
       fsBtn.addEventListener('click', toggleFullscreen);
 
-      // --- persistence ---
-      const BEST_KEY = 'flappy_best_score_v3';
+      // best score
+      const BEST_KEY = 'flappy_best_score_v4';
       function getBest() {
         const v = Number(localStorage.getItem(BEST_KEY));
         return Number.isFinite(v) ? v : 0;
@@ -302,7 +291,7 @@
       let bestScore = getBest();
       scoreBestEl.textContent = `Best: ${bestScore}`;
 
-      // --- canvas resize ---
+      // canvas resize
       function resizeCanvas(){
         const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
         canvas.width = Math.floor(window.innerWidth * dpr);
@@ -314,11 +303,11 @@
       window.addEventListener('resize', () => { setVhUnit(); resizeCanvas(); }, { passive:true });
       resizeCanvas();
 
-      // --- assets ---
+      // assets
       const bg = new Image(); bg.src = 'o.png';
       const birdImg = new Image(); birdImg.src = 'i.png';
 
-      // --- game state ---
+      // game state
       const state = {
         running:false,
         over:false,
@@ -336,8 +325,8 @@
 
       const bird = {
         x:0,
-        y:0,        // physics y
-        yRender:0,  // smoothed y for draw + collision (what you see = what hits)
+        y:0,
+        yRender:0,
         vy:0,
         w:60,
         h:46,
@@ -345,26 +334,24 @@
         rotTarget:0
       };
 
-      // --- pixel mask (alpha map) for bird ---
+      // pixel mask (alpha)
       const mask = {
         ready: false,
         w: 0,
         h: 0,
-        alpha: null,     // Uint8ClampedArray
-        thresh: 35       // ignore very soft edges
+        alpha: null,
+        thresh: 35
       };
       const maskCanvas = document.createElement('canvas');
-      const maskCtx = maskCanvas.getContext('2d'); // keep simple for compatibility
+      const maskCtx = maskCanvas.getContext('2d');
 
       function rebuildBirdMask() {
         mask.ready = false;
         mask.alpha = null;
-
         if (!birdImg.complete || !birdImg.naturalWidth) return;
 
         const w = Math.max(1, Math.floor(bird.w));
         const h = Math.max(1, Math.floor(bird.h));
-
         maskCanvas.width = w;
         maskCanvas.height = h;
 
@@ -380,14 +367,13 @@
           mask.alpha = a;
           mask.ready = true;
         } catch (e) {
-          // If browser blocks getImageData (rare here), we'll use fallback hitbox
           console.warn('Mask build failed, using fallback hitbox collision.', e);
           mask.ready = false;
           mask.alpha = null;
         }
       }
 
-      // speed / pipes
+      // pipes / speed
       function baseSpeed(){
         const s = scaleFactor();
         return 230 * s;
@@ -419,14 +405,14 @@
         return { x: window.innerWidth + 12, w: pipeW, gapY, gapH: gap, passed:false };
       }
 
-      // smoother feel
+      // --- more maneuverable bird (requested) ---
       function gravity(){
         const s = scaleFactor();
-        return 1450 * s;
+        return 1380 * s;   // was 1450 -> slightly less gravity
       }
       function flapStrength(){
         const s = scaleFactor();
-        return -520 * s;
+        return -560 * s;   // was -520 -> stronger flap
       }
       function groundY(){ return window.innerHeight; }
 
@@ -439,7 +425,6 @@
         state.spawnTimer = 0;
         state.lastTime = 0;
 
-        // bigger character
         bird.w = Math.round(86 * s);
         bird.h = Math.round(66 * s);
 
@@ -491,25 +476,26 @@
         gameOverOverlay.classList.remove('hidden');
       }
 
+      // buttons
       startBtn.addEventListener('click', startGame);
       restartBtn.addEventListener('click', startGame);
-
       startFsBtn.addEventListener('click', async () => { await enterFullscreen(); startGame(); });
       restartFsBtn.addEventListener('click', async () => { await enterFullscreen(); startGame(); });
 
+      // controls: Space still works, but instructions say Start
       window.addEventListener('keydown', (e) => {
         if (e.code === 'Space') {
           e.preventDefault();
-          if (!state.running && !state.over && !startOverlay.classList.contains('hidden')) { startGame(); return; }
-          if (state.over) { startGame(); return; }
+          if (!state.running && !state.over && !startOverlay.classList.contains('hidden')) return; // require Start
+          if (state.over) return;
           doFlap();
         }
       }, { passive:false });
 
       window.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        if (!state.running && !state.over && !startOverlay.classList.contains('hidden')) { startGame(); return; }
-        if (state.over) { startGame(); return; }
+        if (!state.running && !state.over && !startOverlay.classList.contains('hidden')) return; // require Start
+        if (state.over) return;
         doFlap();
       }, { passive:false });
 
@@ -520,7 +506,7 @@
         lastTouchTime = now;
       }, { passive:false });
 
-      // --- drawing helpers ---
+      // drawing
       function drawBackground(){
         const w = window.innerWidth, h = window.innerHeight;
         if (bg.complete && bg.naturalWidth){
@@ -580,11 +566,12 @@
       }
 
       function drawBird(dt){
-        bird.rotTarget = Math.max(-0.45, Math.min(1.05, bird.vy / 950));
+        bird.rotTarget = Math.max(-0.45, Math.min(1.05, bird.vy / 980));
         const lerp = 1 - Math.pow(0.001, dt);
-        bird.rotation += (bird.rotTarget - bird.rotation) * lerp * 0.16;
+        bird.rotation += (bird.rotTarget - bird.rotation) * lerp * 0.18;
 
-        bird.yRender += (bird.y - bird.yRender) * lerp * 0.35;
+        // slightly faster render smoothing so it feels responsive
+        bird.yRender += (bird.y - bird.yRender) * lerp * 0.42;
 
         const cx = bird.x + bird.w/2;
         const cy = bird.yRender + bird.h/2;
@@ -604,7 +591,7 @@
         ctx.restore();
       }
 
-      // --- collision helpers ---
+      // collision helpers
       function rectOverlap(ax,ay,aw,ah,bx,by,bw,bh){
         const x1 = Math.max(ax, bx);
         const y1 = Math.max(ay, by);
@@ -614,9 +601,8 @@
         return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
       }
 
-      // Fallback hitbox (when mask not ready): ignores transparent padding
       function getBirdHitbox(){
-        const shrink = 0.78; // tune 0.72..0.85
+        const shrink = 0.78;
         const hw = bird.w * shrink;
         const hh = bird.h * shrink;
         const hx = bird.x + (bird.w - hw)/2;
@@ -624,9 +610,7 @@
         return { x:hx, y:hy, w:hw, h:hh };
       }
 
-      // Pixel-perfect test: any visible pixel overlaps a solid pipe rect
       function birdHitsRectPixelPerfect(rect){
-        // if mask isn't ready, use fallback (NOT instant-true!)
         if (!mask.ready || !mask.alpha) {
           const hb = getBirdHitbox();
           return !!rectOverlap(hb.x, hb.y, hb.w, hb.h, rect.x, rect.y, rect.w, rect.h);
@@ -634,28 +618,22 @@
 
         const bx = bird.x;
         const by = bird.yRender;
-        const bw = bird.w;
-        const bh = bird.h;
-
-        const overlap = rectOverlap(bx, by, bw, bh, rect.x, rect.y, rect.w, rect.h);
+        const overlap = rectOverlap(bx, by, bird.w, bird.h, rect.x, rect.y, rect.w, rect.h);
         if (!overlap) return false;
 
         const sx = overlap.x - bx;
         const sy = overlap.y - by;
 
         const mw = mask.w;
-        const mh = mask.h;
         const alpha = mask.alpha;
         const thresh = mask.thresh;
 
         const startX = Math.max(0, Math.floor(sx));
         const startY = Math.max(0, Math.floor(sy));
         const endX = Math.min(mw, Math.ceil(sx + overlap.w));
-        const endY = Math.min(mh, Math.ceil(sy + overlap.h));
+        const endY = Math.min(mask.h, Math.ceil(sy + overlap.h));
 
-        // step 1 = precise, step 2 = faster
         const step = 1;
-
         for (let y = startY; y < endY; y += step){
           const row = y * mw;
           for (let x = startX; x < endX; x += step){
@@ -667,9 +645,7 @@
 
       function checkCollisions(){
         const hb = getBirdHitbox();
-
-        // ground/ceiling by hitbox (fair)
-        if (hb.y + hb.h >= groundY()) return true;
+        if (hb.y + hb.h >= window.innerHeight) return true;
         if (hb.y <= 0) return true;
 
         for (const p of state.pipes){
@@ -677,7 +653,6 @@
           const by = p.gapY + p.gapH;
           const bottomRect = { x: p.x, y: by, w: p.w, h: window.innerHeight - by };
 
-          // broad-phase: if hitbox doesn't overlap at all, skip
           if (rectOverlap(hb.x, hb.y, hb.w, hb.h, topRect.x, topRect.y, topRect.w, topRect.h)) {
             if (birdHitsRectPixelPerfect(topRect)) return true;
           }
@@ -688,10 +663,9 @@
         return false;
       }
 
-      // --- update / loop ---
       function update(dt){
         // smooth speed increase
-        state.speedTarget = targetSpeed();
+        state.speedTarget = baseSpeed() + Math.min(260 * scaleFactor(), state.score * 10 * scaleFactor());
         const smoothing = 1 - Math.pow(0.001, dt);
         state.speedCurrent += (state.speedTarget - state.speedCurrent) * smoothing * 0.12;
 
@@ -704,7 +678,6 @@
         const speed = state.speedCurrent;
         for (const p of state.pipes){
           p.x -= speed * dt;
-
           const mid = p.x + p.w;
           if (!p.passed && mid < bird.x){
             p.passed = true;
@@ -715,7 +688,10 @@
         state.pipes = state.pipes.filter(p => p.x + p.w > -30);
 
         bird.vy += gravity() * dt;
-        bird.vy *= Math.pow(0.995, dt * 60);
+
+        // less damping => more responsive
+        bird.vy *= Math.pow(0.997, dt * 60);
+
         bird.y += bird.vy * dt;
 
         if (checkCollisions()) endGame();
@@ -732,26 +708,23 @@
         if (!state.running){ render(1/60); return; }
         const dt = Math.min(0.033, Math.max(0, (t - state.lastTime) / 1000));
         state.lastTime = t;
-
         update(dt);
         render(dt);
-
         if (state.running) requestAnimationFrame(loop);
       }
 
-      // --- boot ---
+      // boot
       updateFsUI();
       resetGame();
       startOverlay.classList.remove('hidden');
       gameOverOverlay.classList.add('hidden');
 
       birdImg.addEventListener('load', () => rebuildBirdMask());
+      window.addEventListener('resize', () => rebuildBirdMask(), { passive: true });
+
       bg.addEventListener('error', () => console.warn('Background image o.png not found.'));
       birdImg.addEventListener('error', () => console.warn('Character image i.png not found.'));
-
-      window.addEventListener('resize', () => rebuildBirdMask(), { passive: true });
     })();
   </script>
 </body>
 </html>
-
