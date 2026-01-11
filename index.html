@@ -225,7 +225,6 @@
       const scoreNowEl = document.getElementById('scoreNow');
       const scoreBestEl = document.getElementById('scoreBest');
 
-      // stable mobile vh
       function setVhUnit() {
         const vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -234,10 +233,8 @@
       window.addEventListener('orientationchange', setVhUnit, { passive: true });
       setVhUnit();
 
-      // prevent scroll
       document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
-      // fullscreen
       function isFullscreen() {
         return !!(document.fullscreenElement || document.webkitFullscreenElement);
       }
@@ -281,7 +278,6 @@
       document.addEventListener('webkitfullscreenchange', updateFsUI);
       fsBtn.addEventListener('click', toggleFullscreen);
 
-      // best score
       const BEST_KEY = 'flappy_best_score_v4';
       function getBest() {
         const v = Number(localStorage.getItem(BEST_KEY));
@@ -291,7 +287,6 @@
       let bestScore = getBest();
       scoreBestEl.textContent = `Best: ${bestScore}`;
 
-      // canvas resize
       function resizeCanvas(){
         const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
         canvas.width = Math.floor(window.innerWidth * dpr);
@@ -303,11 +298,9 @@
       window.addEventListener('resize', () => { setVhUnit(); resizeCanvas(); }, { passive:true });
       resizeCanvas();
 
-      // assets
       const bg = new Image(); bg.src = 'o.png';
       const birdImg = new Image(); birdImg.src = 'i.png';
 
-      // game state
       const state = {
         running:false,
         over:false,
@@ -334,7 +327,6 @@
         rotTarget:0
       };
 
-      // pixel mask (alpha)
       const mask = {
         ready: false,
         w: 0,
@@ -376,7 +368,7 @@
       // pipes / speed
       function baseSpeed(){
         const s = scaleFactor();
-        return 230 * s;
+        return 190 * s; // ONLY CHANGE: slower pipes (was 230 * s)
       }
       function targetSpeed(){
         const s = scaleFactor();
@@ -393,7 +385,6 @@
         const s = scaleFactor();
         const pipeW = Math.round(92 * s);
 
-        // ONLY CHANGE: bigger gap between top/bottom pipes
         const minGap = 200 * s;
         const maxGap = 280 * s;
         const gap = Math.round(Math.max(minGap, Math.min(maxGap, window.innerHeight * 0.34)));
@@ -406,14 +397,13 @@
         return { x: window.innerWidth + 12, w: pipeW, gapY, gapH: gap, passed:false };
       }
 
-      // --- more maneuverable bird (requested) ---
       function gravity(){
         const s = scaleFactor();
-        return 1380 * s;   // was 1450 -> slightly less gravity
+        return 1380 * s;
       }
       function flapStrength(){
         const s = scaleFactor();
-        return -560 * s;   // was -520 -> stronger flap
+        return -560 * s;
       }
       function groundY(){ return window.innerHeight; }
 
@@ -477,17 +467,15 @@
         gameOverOverlay.classList.remove('hidden');
       }
 
-      // buttons
       startBtn.addEventListener('click', startGame);
       restartBtn.addEventListener('click', startGame);
       startFsBtn.addEventListener('click', async () => { await enterFullscreen(); startGame(); });
       restartFsBtn.addEventListener('click', async () => { await enterFullscreen(); startGame(); });
 
-      // controls: Space still works, but instructions say Start
       window.addEventListener('keydown', (e) => {
         if (e.code === 'Space') {
           e.preventDefault();
-          if (!state.running && !state.over && !startOverlay.classList.contains('hidden')) return; // require Start
+          if (!state.running && !state.over && !startOverlay.classList.contains('hidden')) return;
           if (state.over) return;
           doFlap();
         }
@@ -495,7 +483,7 @@
 
       window.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        if (!state.running && !state.over && !startOverlay.classList.contains('hidden')) return; // require Start
+        if (!state.running && !state.over && !startOverlay.classList.contains('hidden')) return;
         if (state.over) return;
         doFlap();
       }, { passive:false });
@@ -507,7 +495,6 @@
         lastTouchTime = now;
       }, { passive:false });
 
-      // drawing
       function drawBackground(){
         const w = window.innerWidth, h = window.innerHeight;
         if (bg.complete && bg.naturalWidth){
@@ -571,7 +558,6 @@
         const lerp = 1 - Math.pow(0.001, dt);
         bird.rotation += (bird.rotTarget - bird.rotation) * lerp * 0.18;
 
-        // slightly faster render smoothing so it feels responsive
         bird.yRender += (bird.y - bird.yRender) * lerp * 0.42;
 
         const cx = bird.x + bird.w/2;
@@ -592,7 +578,6 @@
         ctx.restore();
       }
 
-      // collision helpers
       function rectOverlap(ax,ay,aw,ah,bx,by,bw,bh){
         const x1 = Math.max(ax, bx);
         const y1 = Math.max(ay, by);
@@ -665,7 +650,6 @@
       }
 
       function update(dt){
-        // smooth speed increase
         state.speedTarget = baseSpeed() + Math.min(260 * scaleFactor(), state.score * 10 * scaleFactor());
         const smoothing = 1 - Math.pow(0.001, dt);
         state.speedCurrent += (state.speedTarget - state.speedCurrent) * smoothing * 0.12;
@@ -689,10 +673,7 @@
         state.pipes = state.pipes.filter(p => p.x + p.w > -30);
 
         bird.vy += gravity() * dt;
-
-        // less damping => more responsive
         bird.vy *= Math.pow(0.997, dt * 60);
-
         bird.y += bird.vy * dt;
 
         if (checkCollisions()) endGame();
@@ -714,7 +695,6 @@
         if (state.running) requestAnimationFrame(loop);
       }
 
-      // boot
       updateFsUI();
       resetGame();
       startOverlay.classList.remove('hidden');
