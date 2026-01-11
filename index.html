@@ -389,13 +389,15 @@
         const k = Math.min(0.28, state.score * 0.008);
         return (max - k) * (1.0 / (0.95 + 0.15 * s)) + (min * 0.10);
       }
+
       function makePipePair(){
         const s = scaleFactor();
         const pipeW = Math.round(92 * s);
 
-        const minGap = 150 * s;
-        const maxGap = 215 * s;
-        const gap = Math.round(Math.max(minGap, Math.min(maxGap, window.innerHeight * 0.28)));
+        // ✅ BIGGER GAP BETWEEN TOP/BOTTOM PIPES (only change requested)
+        const minGap = 190 * s;
+        const maxGap = 270 * s;
+        const gap = Math.round(Math.max(minGap, Math.min(maxGap, window.innerHeight * 0.34)));
 
         const marginTop = Math.round(70 * s);
         const marginBottom = Math.round(90 * s);
@@ -405,14 +407,14 @@
         return { x: window.innerWidth + 12, w: pipeW, gapY, gapH: gap, passed:false };
       }
 
-      // --- more maneuverable bird (requested) ---
+      // more maneuverable bird
       function gravity(){
         const s = scaleFactor();
-        return 1380 * s;   // was 1450 -> slightly less gravity
+        return 1380 * s;
       }
       function flapStrength(){
         const s = scaleFactor();
-        return -560 * s;   // was -520 -> stronger flap
+        return -560 * s;
       }
       function groundY(){ return window.innerHeight; }
 
