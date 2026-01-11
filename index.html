@@ -4,14 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Flappy Game</title>
+
   <style>
     :root{
       --pipe: rgba(150, 110, 235, 0.96);
       --pipe-dark: rgba(80, 55, 150, 0.40);
-      --ui: rgba(0, 0, 0, 0.55);
-      --ui2: rgba(0, 0, 0, 0.38);
       --white: #fff;
-      --vh: 1vh;
     }
 
     html, body{
@@ -19,37 +17,27 @@
       margin:0;
       background:#000;
       overflow:hidden;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      touch-action: manipulation;
-      overscroll-behavior: none;
-      -webkit-user-select: none;
-      user-select: none;
+      font-family: system-ui, Arial, sans-serif;
+      user-select:none;
     }
 
-    body{
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: calc(var(--vh) * 100);
-    }
-
-    #game{
+    canvas{
       position:fixed;
       inset:0;
       width:100vw;
-      height:calc(var(--vh) * 100);
+      height:100vh;
       display:block;
-      background:#000;
     }
   </style>
 </head>
 <body>
+
 <canvas id="game"></canvas>
 
 <script>
 (() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
 
   function resize(){
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -62,9 +50,11 @@
   window.addEventListener("resize", resize);
   resize();
 
+  // Assets
   const bg = new Image(); bg.src = "o.png";
   const birdImg = new Image(); birdImg.src = "i.png";
 
+  // Bird
   const bird = {
     x: innerWidth * 0.28,
     y: innerHeight * 0.45,
@@ -73,43 +63,51 @@
     h: 66
   };
 
+  // Pipes
   const pipes = [];
   let spawnTimer = 0;
   let score = 0;
-  let speed = 230;
+  const speed = 230;
 
   function scale(){
     return Math.max(0.85, Math.min(1.35, innerHeight / 700));
   }
 
+  // Spawn pipe pair
   function spawnPipe(){
     const s = scale();
-    const pipeW = 92 * s;
+    const pipeWidth = 92 * s;
 
-    // ✅ ЩЕ БІЛЬШИЙ GAP
-    const minGap = 240 * s;
-    const maxGap = 340 * s;
-    const gap = Math.max(
-      minGap,
-      Math.min(maxGap, innerHeight * 0.42)
+    // ONLY CHANGE: larger vertical gap between pipes
+    const minGap = 230 * s;
+    const maxGap = 320 * s;
+    const gap = Math.round(
+      Math.max(minGap, Math.min(maxGap, innerHeight * 0.40))
     );
 
     const margin = 80 * s;
-    const usable = innerHeight - gap - margin * 2;
-    const gapY = margin + Math.random() * usable;
+    const usableHeight = innerHeight - gap - margin * 2;
+    const gapY = margin + Math.random() * usableHeight;
 
-    pipes.push({ x: innerWidth + 20, w: pipeW, gapY, gapH: gap, passed:false });
+    pipes.push({
+      x: innerWidth + 20,
+      w: pipeWidth,
+      gapY,
+      gapH: gap,
+      passed: false
+    });
   }
 
+  // Controls
   function flap(){
     bird.vy = -560 * scale();
   }
-
   window.addEventListener("pointerdown", flap);
   window.addEventListener("keydown", e => {
     if (e.code === "Space") flap();
   });
 
+  // Update game logic
   function update(dt){
     bird.vy += 1380 * scale() * dt;
     bird.vy *= 0.997;
@@ -129,6 +127,7 @@
         score++;
       }
 
+      // Collision check
       if (
         bird.x + bird.w > p.x &&
         bird.x < p.x + p.w &&
@@ -139,35 +138,39 @@
     }
   }
 
+  // Draw everything
   function draw(){
     if (bg.complete){
-      ctx.drawImage(bg,0,0,innerWidth,innerHeight);
+      ctx.drawImage(bg, 0, 0, innerWidth, innerHeight);
     } else {
-      ctx.fillStyle="#0b1020";
-      ctx.fillRect(0,0,innerWidth,innerHeight);
+      ctx.fillStyle = "#0b1020";
+      ctx.fillRect(0, 0, innerWidth, innerHeight);
     }
 
-    ctx.fillStyle="rgba(150,110,235,0.96)";
+    // Pipes
+    ctx.fillStyle = "rgba(150,110,235,0.96)";
     for (const p of pipes){
-      ctx.fillRect(p.x,0,p.w,p.gapY);
-      ctx.fillRect(p.x,p.gapY+p.gapH,p.w,innerHeight);
+      ctx.fillRect(p.x, 0, p.w, p.gapY);
+      ctx.fillRect(p.x, p.gapY + p.gapH, p.w, innerHeight);
     }
 
+    // Bird
     if (birdImg.complete){
-      ctx.drawImage(birdImg,bird.x,bird.y,bird.w,bird.h);
+      ctx.drawImage(birdImg, bird.x, bird.y, bird.w, bird.h);
     } else {
-      ctx.fillStyle="#fff";
-      ctx.fillRect(bird.x,bird.y,bird.w,bird.h);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(bird.x, bird.y, bird.w, bird.h);
     }
 
-    ctx.fillStyle="#fff";
-    ctx.font="bold 20px system-ui";
-    ctx.fillText("Score: "+score,20,30);
+    // Score
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 20px system-ui";
+    ctx.fillText("Score: " + score, 20, 30);
   }
 
   let last = performance.now();
   function loop(t){
-    const dt = Math.min(0.033,(t-last)/1000);
+    const dt = Math.min(0.033, (t - last) / 1000);
     last = t;
     update(dt);
     draw();
@@ -176,5 +179,6 @@
   loop(last);
 })();
 </script>
+
 </body>
 </html>
